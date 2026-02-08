@@ -327,4 +327,35 @@ function inicializar() {
     resetarTelaECarregar();
 }
 
+// --- FUNÇÕES DE DRAG & DROP (CHAMADAS PELO HTML) ---
+
+window.allowDrop = function(event) {
+    event.preventDefault(); // Necessário para permitir o drop
+}
+
+window.drop = function(event) {
+    event.preventDefault();
+    const arrastando = document.querySelector(".arrastando");
+    // Encontra a coluna, mesmo que o usuário solte em cima de outro cartão
+    const colunaAlvo = event.target.closest(".coluna");
+    
+    if (arrastando && colunaAlvo) {
+        colunaAlvo.appendChild(arrastando);
+        
+        // Atualiza o ícone da tarefa baseado na nova coluna
+        const colunaId = colunaAlvo.id;
+        const icon = arrastando.querySelector(".emoji-label i");
+        if (icon) {
+            icon.className = "fa-solid";
+            if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
+            if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
+            if (colunaId === "done") icon.classList.add("fa-circle-check");
+        }
+        
+        salvarDados(); // Sincroniza a nova posição com LocalStorage e Firebase
+        ordenarColuna(colunaId); // Reordena por prioridade na nova coluna
+    }
+}
+
 inicializar();
+
