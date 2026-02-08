@@ -3,25 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kanban Visual Pro - 2026</title>
+  <title>Kanban Visual Pro - Ateliê Márcio Torres</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-
-<div id="pomodoro-container" class="pomodoro-flutuante" style="display: none;">
-  <div class="pomodoro-header">
-    <span id="pomo-tarefa-titulo">Tarefa: Exemplo</span>
-    <button id="fechar-pomo">&times;</button>
-  </div>
-  <div class="pomo-display">
-    <span id="tempo-restante">25:00</span>
-  </div>
-  <div class="pomo-controles">
-    <input type="number" id="pomo-minutos" value="25" min="1" max="60">
-    <button id="pomo-start"><i class="fa-solid fa-play"></i> Iniciar</button>
-  </div>
-</div>
 
   <div class="navegador-meses">
     <button id="mes-anterior" title="Mês Anterior">
@@ -32,72 +18,95 @@
       <i class="fa-solid fa-chevron-right"></i>
     </button>
     <h1> Kanban - Ateliê Márcio Torres</h1>
-    <img src="logo_atelie.png" alt="Logotipo do atelie Márcio Torres">
+    <img src="logo_atelie.png" alt="Logotipo do atelie Márcio Torres" style="max-height: 50px; width: auto;">
   </div>
 
- <div class="toolbar-superior">
-  <div class="controles-principais">
-    <input type="text" id="titulo" placeholder="O que precisa ser feito?...">
-    <select id="colunaDestino">
-      <option value="todo">A Fazer</option>
-      <option value="doing">Em Progresso</option>
-      <option value="done">Concluído</option>
-    </select>
-    <select id="prioridade"> 
-      <option value="alta">🔴 Alta</option> 
-      <option value="media">🟡 Média</option> 
-      <option value="baixa">🟢 Baixa</option> 
-    </select>  
-    <button id="adicionar"><i class="fa-solid fa-plus"></i> Adicionar</button>
-    
-  </div>
+  <div class="toolbar-superior">
+    <div class="controles-principais">
+      <input type="text" id="titulo" placeholder="O que precisa ser feito?...">
+      <select id="colunaDestino">
+        <option value="todo">A Fazer</option>
+        <option value="doing">Em Progresso</option>
+        <option value="done">Concluído</option>
+      </select>
+      <select id="prioridade">
+        <option value="baixa">🟢 Baixa</option>
+        <option value="media">🟡 Média</option>
+        <option value="alta">🔴 Alta</option>
+      </select>
+      <button onclick="adicionarTarefa()">Adicionar</button>
+    </div>
 
-  <div class="acoes-globais">
-    <a href="dashboard.html" class="btn-toolbar btn-estatisticas">
-      <i class="fa-solid fa-chart-line"></i> Dashboard
-    </a>
-    <button id="abrir-relatorio" class="btn-toolbar btn-relatorio">
-      <i class="fa-solid fa-file-lines"></i> Relatório
-    </button>
-    <button id="limpar" class="btn-toolbar btn-limpar">
-      <i class="fa-solid fa-trash-can"></i> Limpar Mês
-    </button>
+    <div class="acoes-globais">
+      <a href="dashboard.html" class="btn-toolbar btn-estatisticas">
+        <i class="fa-solid fa-chart-line"></i> Dashboard
+      </a>
+      <button id="abrir-relatorio" class="btn-toolbar btn-relatorio">
+        <i class="fa-solid fa-file-lines"></i> Relatório
+      </button>
+      <button id="limpar" class="btn-toolbar btn-limpar">
+        <i class="fa-solid fa-trash-can"></i> Limpar Mês
+      </button>
+    </div>
   </div>
-</div>
 
   <div class="kanban">
-    <div class="coluna" id="todo">
+    <div class="coluna" id="todo" ondrop="drop(event)" ondragover="allowDrop(event)">
       <h2>A Fazer</h2>
     </div>
-    <div class="coluna" id="doing">
+    <div class="coluna" id="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
       <h2>Em Progresso</h2>
     </div>
-    <div class="coluna" id="done">
+    <div class="coluna" id="done" ondrop="drop(event)" ondragover="allowDrop(event)">
       <h2>Concluído</h2>
     </div>
   </div>
 
-<div id="modal-relatorio" class="modal">
-  <div class="modal-content">
-    <h3>📊 Relatório Mensal</h3>
-    <div id="conteudo-relatorio">
-      </div>
-    <div class="modal-buttons">
-      <button id="fechar-relatorio">Fechar</button>
+  <div id="pomodoro-container" class="pomodoro-flutuante" style="display: none;">
+    <div class="pomodoro-header">
+      <span id="pomo-tarefa-titulo">Tarefa</span>
+      <button id="fechar-pomo">&times;</button>
+    </div>
+    <div class="pomo-display">
+      <span id="tempo-restante">25:00</span>
+    </div>
+    <div class="pomo-controles">
+      <input type="number" id="pomo-minutos" value="25" min="1" max="60">
+      <button id="pomo-start"><i class="fa-solid fa-play"></i> Iniciar</button>
     </div>
   </div>
-</div>
 
-  <div id="modal" class="modal">
+  <div id="modal-relatorio" class="modal">
     <div class="modal-content">
-      <h3>⚠️ Atenção</h3>
-      <p>Esta ação apagará todas as tarefas de <strong><span id="mes-modal-ref">este mês</span></strong> e não poderá ser desfeita. Deseja continuar?</p>
+      <h3>📊 Relatório Mensal - <span id="mes-modal-ref"></span></h3>
+      <div id="conteudo-relatorio"></div>
       <div class="modal-buttons">
-        <button id="confirmar">Sim, apagar tudo</button>
-        <button id="cancelar">Cancelar</button>
+        <button id="fechar-relatorio">Fechar</button>
       </div>
     </div>
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvqwSPRqayyOnl7UzK7oylVbQZdl9n7ag",
+      authDomain: "kanban-atelie.firebaseapp.com",
+      projectId: "kanban-atelie",
+      storageBucket: "kanban-atelie.firebasestorage.app",
+      messagingSenderId: "167380290010",
+      appId: "1:167380290010:web:b91b8a17117e02f4c318e3",
+      measurementId: "G-9KFTMSBGN9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Disponibiliza para o script.js
+    window.db = db;
+    window.fsMethods = { doc, setDoc, getDoc };
+  </script>
 
   <script src="script.js"></script>
 </body>
