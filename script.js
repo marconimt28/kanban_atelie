@@ -1,11 +1,38 @@
-// --- CONFIGURAÇÃO INICIAL E ESTADO ---
+// --- 1. REGISTRO GLOBAL  ---
+window.allowDrop = function(event) {
+    event.preventDefault();
+};
+
+window.drop = function(event) {
+    event.preventDefault();
+    const arrastando = document.querySelector(".arrastando");
+    const colunaAlvo = event.target.closest(".coluna");
+    
+    if (arrastando && colunaAlvo) {
+        colunaAlvo.appendChild(arrastando);
+        
+        const colunaId = colunaAlvo.id;
+        const icon = arrastando.querySelector(".emoji-label i");
+        if (icon) {
+            icon.className = "fa-solid";
+            if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
+            if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
+            if (colunaId === "done") icon.classList.add("fa-circle-check");
+        }
+        
+        salvarDados();
+        ordenarColuna(colunaId);
+    }
+};
+
+// --- 2. CONFIGURAÇÃO INICIAL E ESTADO ---
 let dataExibida = new Date(); 
 let ultimaTarefaExcluida = null;
 let timeoutDesfazer = null;
 let timerInterval;
 let tarefaAtivaId = null;
 
-// --- NAVEGAÇÃO ENTRE MESES E INTEGRAÇÃO ---
+// --- 3. NAVEGAÇÃO E DISPLAY ---
 
 function getChaveMes() {
     return `kanban_${dataExibida.getFullYear()}_${dataExibida.getMonth()}`;
@@ -33,14 +60,20 @@ function atualizarLinkDashboard() {
     }
 }
 
-document.getElementById("mes-anterior").addEventListener("click", () => {
-    dataExibida.setMonth(dataExibida.getMonth() - 1);
-    resetarTelaECarregar();
-});
-
-document.getElementById("proximo-mes").addEventListener("click", () => {
-    dataExibida.setMonth(dataExibida.getMonth() + 1);
-    resetarTelaECarregar();
+// Vinculando eventos de navegação
+document.addEventListener("DOMContentLoaded", () => {
+    const btnAnt = document.getElementById("mes-anterior");
+    const btnProx = document.getElementById("proximo-mes");
+    
+    if(btnAnt) btnAnt.onclick = () => {
+        dataExibida.setMonth(dataExibida.getMonth() - 1);
+        resetarTelaECarregar();
+    };
+    
+    if(btnProx) btnProx.onclick = () => {
+        dataExibida.setMonth(dataExibida.getMonth() + 1);
+        resetarTelaECarregar();
+    };
 });
 
 function resetarTelaECarregar() {
@@ -49,7 +82,7 @@ function resetarTelaECarregar() {
     atualizarLinkDashboard();
 }
 
-// --- PERSISTÊNCIA (LOCAL E FIREBASE) ---
+// --- 4. PERSISTÊNCIA ---
 
 async function salvarDados() {
     const chave = getChaveMes();
@@ -70,10 +103,7 @@ async function salvarDados() {
         try {
             const { doc, setDoc } = window.fsMethods;
             await setDoc(doc(window.db, "meses", chave), dados);
-            console.log("☁️ Sincronizado com Firebase");
-        } catch (e) {
-            console.error("Erro ao salvar no Firebase:", e);
-        }
+        } catch (e) { console.error("Erro Firebase:", e); }
     }
 }
 
@@ -94,9 +124,7 @@ async function carregarTarefas() {
                 limparColunasVisuais();
                 renderizarDados(dadosNuvem);
             }
-        } catch (e) {
-            console.error("Erro ao buscar do Firebase:", e);
-        }
+        } catch (e) { console.error("Erro Firebase:", e); }
     }
 }
 
@@ -104,8 +132,9 @@ function limparColunasVisuais() {
     ["todo", "doing", "done"].forEach(id => {
         const col = document.getElementById(id);
         if (col) {
-            const h2 = col.querySelector("h2").outerHTML;
-            col.innerHTML = h2;
+            const h2 = col.querySelector("h2");
+            col.innerHTML = "";
+            if(h2) col.appendChild(h2);
         }
     });
 }
@@ -123,7 +152,7 @@ function renderizarDados(dados) {
     });
 }
 
-// --- GESTÃO DE TAREFAS ---
+// --- 5. GESTÃO DE TAREFAS ---
 
 function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const cartao = document.createElement("div");
@@ -133,7 +162,7 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const btnExcluir = document.createElement("button");
     btnExcluir.innerHTML = "×";
     btnExcluir.classList.add("btn-excluir");
-    btnExcluir.addEventListener("click", (e) => {
+    btnExcluir.onclick = (e) => {
         e.stopPropagation();
         ultimaTarefaExcluida = {
             elemento: cartao,
@@ -143,7 +172,7 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
         cartao.remove();
         salvarDados();
         mostrarToastDesfazer();
-    });
+    };
 
     const spanTexto = document.createElement("span");
     spanTexto.textContent = texto;
@@ -151,7 +180,7 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const emoji = document.createElement("span");
     emoji.classList.add("emoji-label");
     const icon = document.createElement("i");
-    icon.classList.add("fa-solid");
+    icon.className = "fa-solid";
     
     if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
     if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
@@ -163,57 +192,36 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     cartao.appendChild(btnExcluir);
 
     cartao.setAttribute("draggable", true);
-    cartao.addEventListener("dragstart", (e) => {
-        cartao.classList.add("arrastando");
-    });
-    
-    cartao.addEventListener("dragend", () => {
-        cartao.classList.remove("arrastando");
-    });
+    cartao.ondragstart = () => cartao.classList.add("arrastando");
+    cartao.ondragend = () => cartao.classList.remove("arrastando");
 
-    cartao.addEventListener("click", () => {
+    cartao.onclick = () => {
         if (cartao.parentElement && cartao.parentElement.id === "doing") {
             abrirPomodoro(id, texto);
         }
-    });
-
-    cartao.addEventListener("dblclick", () => {
-        const novoTexto = prompt("Editar tarefa:", spanTexto.textContent);
-        if (novoTexto) {
-            spanTexto.textContent = novoTexto.trim();
-            salvarDados();
-        }
-    });
+    };
 
     return cartao;
 }
 
 window.adicionarTarefa = function() {
     const inputTitulo = document.getElementById("titulo");
-    const selectColuna = document.getElementById("colunaDestino");
-    const selectPrioridade = document.getElementById("prioridade");
-
     if (!inputTitulo) return;
 
     const titulo = inputTitulo.value.trim();
-    const colunaDestino = selectColuna.value;
-    const prioridade = selectPrioridade.value;
+    const colunaDestino = document.getElementById("colunaDestino").value;
+    const prioridade = document.getElementById("prioridade").value;
 
     if (titulo !== "") {
         const novoCartao = criarCartao(titulo, "c" + Date.now(), colunaDestino, prioridade);
-        const container = document.getElementById(colunaDestino);
-        if (container) {
-            container.appendChild(novoCartao);
-            inputTitulo.value = ""; 
-            salvarDados();
-            ordenarColuna(colunaDestino);
-        }
-    } else {
-        alert("Por favor, digite o título da tarefa.");
+        document.getElementById(colunaDestino).appendChild(novoCartao);
+        inputTitulo.value = ""; 
+        salvarDados();
+        ordenarColuna(colunaDestino);
     }
 };
 
-// --- POMODORO ---
+// --- 6. POMODORO ---
 
 function abrirPomodoro(id, titulo) {
     tarefaAtivaId = id;
@@ -248,32 +256,13 @@ function iniciarTimer(minutos) {
         if (tempo <= 0) {
             clearInterval(timerInterval);
             alert("⏰ Tempo finalizado!");
-            salvarHistoricoPomo(minutos);
             document.getElementById("pomo-start").innerHTML = '<i class="fa-solid fa-play"></i> Iniciar';
         }
         tempo--;
     }, 1000);
 }
 
-async function salvarHistoricoPomo(minutos) {
-    const chave = `pomo_history_${getChaveMes()}`;
-    let hist = JSON.parse(localStorage.getItem(chave)) || [];
-    hist.push({ id: tarefaAtivaId, data: new Date().toISOString(), tempo: minutos });
-    localStorage.setItem(chave, JSON.stringify(hist));
-    
-    if (window.db) {
-        try {
-            const { doc, setDoc } = window.fsMethods;
-            await setDoc(doc(window.db, "pomodoro", `${chave}_${Date.now()}`), { 
-                tempo: minutos, 
-                data: new Date().toISOString(),
-                tarefaId: tarefaAtivaId 
-            });
-        } catch(e) { console.error(e); }
-    }
-}
-
-// --- ORDENAÇÃO ---
+// --- 7. UTILITÁRIOS ---
 
 function ordenarColuna(colunaId) {
     const coluna = document.getElementById(colunaId);
@@ -289,16 +278,13 @@ function ordenarColuna(colunaId) {
     cartoes.forEach(c => coluna.appendChild(c));
 }
 
-// --- TOAST E LIMPEZA ---
-
 function mostrarToastDesfazer() {
-    const existente = document.getElementById("toast-undo");
-    if (existente) existente.remove();
     const toast = document.createElement("div");
     toast.id = "toast-undo";
-    toast.innerHTML = `<span>Tarefa removida</span><button onclick="window.desfazerExclusao()">Desfazer</button>`;
+    toast.style = "position:fixed; bottom:20px; right:20px; background:#333; color:#fff; padding:10px; border-radius:5px; z-index:1000;";
+    toast.innerHTML = `<span>Removido</span> <button onclick="window.desfazerExclusao()" style="color:yellow; border:none; background:none; cursor:pointer;">Desfazer</button>`;
     document.body.appendChild(toast);
-    timeoutDesfazer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+    setTimeout(() => toast.remove(), 5000);
 }
 
 window.desfazerExclusao = function() {
@@ -306,47 +292,12 @@ window.desfazerExclusao = function() {
         const { elemento, pai, posicao } = ultimaTarefaExcluida;
         pai.insertBefore(elemento, pai.children[posicao] || null);
         salvarDados();
-        if (document.getElementById("toast-undo")) document.getElementById("toast-undo").remove();
+        document.getElementById("toast-undo").remove();
         ultimaTarefaExcluida = null;
     }
 };
 
-document.getElementById("limpar").onclick = () => {
-    if (confirm("Limpar tarefas deste mês?")) {
-        localStorage.removeItem(getChaveMes());
-        resetarTelaECarregar();
-    }
-};
-
-// --- FUNÇÕES DE DRAG & DROP (CHAMADAS PELO HTML) ---
-
-window.allowDrop = function(event) {
-    event.preventDefault();
-};
-
-window.drop = function(event) {
-    event.preventDefault();
-    const arrastando = document.querySelector(".arrastando");
-    const colunaAlvo = event.target.closest(".coluna");
-    
-    if (arrastando && colunaAlvo) {
-        colunaAlvo.appendChild(arrastando);
-        
-        const colunaId = colunaAlvo.id;
-        const icon = arrastando.querySelector(".emoji-label i");
-        if (icon) {
-            icon.className = "fa-solid";
-            if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
-            if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
-            if (colunaId === "done") icon.classList.add("fa-circle-check");
-        }
-        
-        salvarDados();
-        ordenarColuna(colunaId);
-    }
-};
-
-// --- INICIALIZAÇÃO (CHAMADA POR ÚLTIMO) ---
+// --- INICIALIZAÇÃO ---
 function inicializar() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('mes')) {
@@ -356,5 +307,4 @@ function inicializar() {
     resetarTelaECarregar();
 }
 
-// Garante que as funções window.drop já existam antes de carregar dados
 inicializar();
