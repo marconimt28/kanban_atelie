@@ -107,23 +107,44 @@ function adicionarTarefa() {
 
 function criarCartao(texto, id, prioridade) {
     const cartao = document.createElement("div");
-    cartao.className = `cartao prio-${prioridade}`;
+    
+    // Garante que a classe de prioridade seja aplicada (ex: prio-alta)
+    cartao.className = `cartao prio-${prioridade}`; 
     cartao.draggable = true;
     cartao.dataset.id = id;
     cartao.dataset.prioridade = prioridade;
-    cartao.innerHTML = `<span>${texto}</span> <button class="btn-del">&times;</button>`;
 
-    cartao.ondragstart = (e) => e.dataTransfer.setData("text", id);
+    // Estrutura interna: Ícone de prioridade + Texto + Botão de fechar com ícone
+    cartao.innerHTML = `
+        <div class="cartao-conteudo">
+            <i class="fa-solid fa-circle" style="font-size: 10px; margin-right: 8px;"></i>
+            <span>${texto}</span>
+        </div>
+        <button class="btn-del" title="Excluir tarefa">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+
+    // Evento de Drag
+    cartao.ondragstart = (e) => {
+        e.dataTransfer.setData("text", id);
+        cartao.classList.add("arrastando");
+    };
+
+    cartao.ondragend = () => cartao.classList.remove("arrastando");
     
+    // Evento de Excluir
     cartao.querySelector(".btn-del").onclick = (e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Evita abrir o pomodoro ao excluir
         cartao.remove();
         salvarDados();
     };
 
-    // Clique para Pomodoro
+    // Clique para Pomodoro (apenas na coluna Doing)
     cartao.onclick = () => {
-        if (cartao.parentElement.id === "doing") abrirPomodoro(id, texto);
+        if (cartao.parentElement && cartao.parentElement.id === "doing") {
+            abrirPomodoro(id, texto);
+        }
     };
 
     return cartao;
@@ -224,4 +245,5 @@ if (urlParams.has('mes')) {
     dataExibida.setMonth(urlParams.get('mes'));
     dataExibida.setFullYear(urlParams.get('ano'));
 }
+
 atualizarDisplayMes();
