@@ -20,7 +20,7 @@ function atualizarDisplayMes() {
     const modalRef = document.getElementById("mes-modal-ref");
     
     const textoMes = `${nomesMeses[dataExibida.getMonth()]} / ${dataExibida.getFullYear()}`;
-    display.textContent = textoMes;
+    if (display) display.textContent = textoMes;
     if (modalRef) modalRef.textContent = textoMes;
 }
 
@@ -64,10 +64,8 @@ async function salvarDados() {
         });
     });
 
-    // Salva Localmente
     localStorage.setItem(chave, JSON.stringify(dados));
 
-    // Salva no Firebase
     if (window.db) {
         try {
             const { doc, setDoc } = window.fsMethods;
@@ -83,11 +81,9 @@ async function carregarTarefas() {
     const chave = getChaveMes();
     limparColunasVisuais();
 
-    // 1. Carrega do LocalStorage primeiro (velocidade)
     const dadosLocais = JSON.parse(localStorage.getItem(chave));
     if (dadosLocais) renderizarDados(dadosLocais);
 
-    // 2. Sincroniza com Firebase
     if (window.db) {
         try {
             const { doc, getDoc } = window.fsMethods;
@@ -107,30 +103,33 @@ async function carregarTarefas() {
 function limparColunasVisuais() {
     ["todo", "doing", "done"].forEach(id => {
         const col = document.getElementById(id);
-        const h2 = col.querySelector("h2").outerHTML;
-        col.innerHTML = h2;
+        if (col) {
+            const h2 = col.querySelector("h2").outerHTML;
+            col.innerHTML = h2;
+        }
     });
 }
 
 function renderizarDados(dados) {
     Object.keys(dados).forEach(colunaId => {
-        dados[colunaId].forEach(item => {
-            const cartao = criarCartao(item.texto, "c" + Math.random(), colunaId, item.prioridade);
-            document.getElementById(colunaId).appendChild(cartao);
-        });
-        ordenarColuna(colunaId);
+        const colunaElement = document.getElementById(colunaId);
+        if (colunaElement) {
+            dados[colunaId].forEach(item => {
+                const cartao = criarCartao(item.texto, "c" + Math.random(), colunaId, item.prioridade);
+                colunaElement.appendChild(cartao);
+            });
+            ordenarColuna(colunaId);
+        }
     });
 }
 
-// --- GESTÃO DE TAREFAS (DESIGN ORIGINAL) ---
+// --- GESTÃO DE TAREFAS (DESIGN ORIGINAL RESTAURADO) ---
 
 function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const cartao = document.createElement("div");
-    cartao.classList.add("cartao");
-    cartao.classList.add(prioridade); // Restaura a borda colorida
+    cartao.classList.add("cartao", prioridade);
     cartao.dataset.id = id;
 
-    // Botão Excluir (Visual vermelho flutuante)
     const btnExcluir = document.createElement("button");
     btnExcluir.innerHTML = "×";
     btnExcluir.classList.add("btn-excluir");
@@ -146,18 +145,16 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
         mostrarToastDesfazer();
     });
 
-    // Conteúdo Texto
     const spanTexto = document.createElement("span");
     spanTexto.textContent = texto;
 
-    // Ícone Lateral Circular (emoji-label)
     const emoji = document.createElement("span");
     emoji.classList.add("emoji-label");
     const icon = document.createElement("i");
     icon.classList.add("fa-solid");
     
     if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
-    if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin"); // Spinner girando
+    if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
     if (colunaId === "done") icon.classList.add("fa-circle-check");
     emoji.appendChild(icon);
 
@@ -165,7 +162,6 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     cartao.appendChild(emoji);
     cartao.appendChild(btnExcluir);
 
-    // Drag and Drop
     cartao.setAttribute("draggable", true);
     cartao.addEventListener("dragstart", () => cartao.classList.add("arrastando"));
     cartao.addEventListener("dragend", () => {
@@ -173,14 +169,12 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
         salvarDados();
     });
 
-    // Clique para Pomodoro (Apenas em Progresso)
     cartao.addEventListener("click", () => {
         if (cartao.parentElement && cartao.parentElement.id === "doing") {
             abrirPomodoro(id, texto);
         }
     });
 
-    // Edição com Duplo Clique
     cartao.addEventListener("dblclick", () => {
         const novoTexto = prompt("Editar tarefa:", spanTexto.textContent);
         if (novoTexto) {
@@ -192,27 +186,31 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     return cartao;
 }
 
-document.getElementById("adicionar").addEventListener("click", () => {
-    const titulo = document.getElementById("titulo").value.trim();
-    const colunaDestino = document.getElementById("colunaDestino").value;
-    const prioridade = document.getElementById("prioridade").value;
+// CORREÇÃO DO BOTÃO ADICIONAR
+const btnAdd = document.getElementById("adicionar") || document.querySelector(".controles-principais button");
+if (btnAdd) {
+    btnAdd.addEventListener("click", () => {
+        const inputTitulo = document.getElementById("titulo");
+        const titulo = inputTitulo.value.trim();
+        const colunaDestino = document.getElementById("colunaDestino").value;
+        const prioridade = document.getElementById("prioridade").value;
 
-    if (titulo !== "") {
-        const novoCartao = criarCartao(titulo, "c" + Date.now(), colunaDestino, prioridade);
-        document.getElementById(colunaDestino).appendChild(novoCartao);
-        document.getElementById("titulo").value = "";
-        salvarDados();
-        ordenarColuna(colunaDestino);
-    }
-});
+        if (titulo !== "") {
+            const novoCartao = criarCartao(titulo, "c" + Date.now(), colunaDestino, prioridade);
+            document.getElementById(colunaDestino).appendChild(novoCartao);
+            inputTitulo.value = ""; 
+            salvarDados();
+            ordenarColuna(colunaDestino);
+        }
+    });
+}
 
 // --- POMODORO ---
 
 function abrirPomodoro(id, titulo) {
     tarefaAtivaId = id;
-    const container = document.getElementById("pomodoro-container");
+    let container = document.getElementById("pomodoro-container");
     if (!container) {
-        // Cria o container caso não exista no HTML
         const pomoHtml = `
         <div id="pomodoro-container" class="pomodoro-flutuante">
             <div class="pomodoro-header">
@@ -231,12 +229,12 @@ function abrirPomodoro(id, titulo) {
             document.getElementById("pomodoro-container").style.display = "none";
             clearInterval(timerInterval);
         };
-        
         document.getElementById("pomo-start").onclick = acaoBotaoPomo;
+        container = document.getElementById("pomodoro-container");
     }
     
     document.getElementById("pomo-tarefa-titulo").textContent = titulo;
-    document.getElementById("pomodoro-container").style.display = "block";
+    container.style.display = "block";
 }
 
 function acaoBotaoPomo() {
@@ -253,6 +251,7 @@ function acaoBotaoPomo() {
 function iniciarTimer(minutos) {
     let tempo = minutos * 60;
     const display = document.getElementById("tempo-restante");
+    clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         let m = Math.floor(tempo / 60);
         let s = tempo % 60;
@@ -274,8 +273,10 @@ async function salvarHistoricoPomo(minutos) {
     localStorage.setItem(chave, JSON.stringify(hist));
     
     if (window.db) {
-        const { doc, setDoc } = window.fsMethods;
-        await setDoc(doc(window.db, "pomodoro", `${chave}_${Date.now()}`), { tempo: minutos, data: new Date().toISOString() });
+        try {
+            const { doc, setDoc } = window.fsMethods;
+            await setDoc(doc(window.db, "pomodoro", `${chave}_${Date.now()}`), { tempo: minutos, data: new Date().toISOString(), tarefaId: tarefaAtivaId });
+        } catch(e) { console.error(e); }
     }
 }
 
@@ -283,6 +284,7 @@ async function salvarHistoricoPomo(minutos) {
 
 function ordenarColuna(colunaId) {
     const coluna = document.getElementById(colunaId);
+    if (!coluna) return;
     const cartoes = Array.from(coluna.querySelectorAll(".cartao"));
     const ordem = { alta: 1, media: 2, baixa: 3 };
 
@@ -296,22 +298,24 @@ function ordenarColuna(colunaId) {
 
 ["todo", "doing", "done"].forEach(colunaId => {
     const coluna = document.getElementById(colunaId);
-    coluna.addEventListener("dragover", e => e.preventDefault());
-    coluna.addEventListener("drop", () => {
-        const arrastando = document.querySelector(".arrastando");
-        if (arrastando) {
-            coluna.appendChild(arrastando);
-            // Atualiza o ícone com base na nova coluna
-            const icon = arrastando.querySelector(".emoji-label i");
-            icon.className = "fa-solid";
-            if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
-            if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
-            if (colunaId === "done") icon.classList.add("fa-circle-check");
-            
-            salvarDados();
-            ordenarColuna(colunaId);
-        }
-    });
+    if (coluna) {
+        coluna.addEventListener("dragover", e => e.preventDefault());
+        coluna.addEventListener("drop", () => {
+            const arrastando = document.querySelector(".arrastando");
+            if (arrastando) {
+                coluna.appendChild(arrastando);
+                const icon = arrastando.querySelector(".emoji-label i");
+                if (icon) {
+                    icon.className = "fa-solid";
+                    if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
+                    if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
+                    if (colunaId === "done") icon.classList.add("fa-circle-check");
+                }
+                salvarDados();
+                ordenarColuna(colunaId);
+            }
+        });
+    }
 });
 
 // --- TOAST E MODAIS ---
@@ -331,16 +335,21 @@ window.desfazerExclusao = function() {
         const { elemento, pai, posicao } = ultimaTarefaExcluida;
         pai.insertBefore(elemento, pai.children[posicao] || null);
         salvarDados();
-        document.getElementById("toast-undo").remove();
+        const toast = document.getElementById("toast-undo");
+        if (toast) toast.remove();
         ultimaTarefaExcluida = null;
     }
 };
 
-document.getElementById("confirmar").onclick = () => {
-    localStorage.removeItem(getChaveMes());
-    document.getElementById("modal").style.display = "none";
-    resetarTelaECarregar();
-};
+const btnLimpar = document.getElementById("limpar");
+if (btnLimpar) {
+    btnLimpar.onclick = () => {
+        if (confirm("Deseja realmente limpar todas as tarefas deste mês?")) {
+            localStorage.removeItem(getChaveMes());
+            resetarTelaECarregar();
+        }
+    };
+}
 
 // --- INICIALIZAÇÃO ---
 function inicializar() {
