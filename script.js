@@ -123,7 +123,7 @@ function renderizarDados(dados) {
     });
 }
 
-// --- GESTÃO DE TAREFAS (RESTAURO VISUAL) ---
+// --- GESTÃO DE TAREFAS ---
 
 function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const cartao = document.createElement("div");
@@ -163,10 +163,12 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     cartao.appendChild(btnExcluir);
 
     cartao.setAttribute("draggable", true);
-    cartao.addEventListener("dragstart", () => cartao.classList.add("arrastando"));
+    cartao.addEventListener("dragstart", (e) => {
+        cartao.classList.add("arrastando");
+    });
+    
     cartao.addEventListener("dragend", () => {
         cartao.classList.remove("arrastando");
-        salvarDados();
     });
 
     cartao.addEventListener("click", () => {
@@ -186,7 +188,6 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     return cartao;
 }
 
-// FUNÇÃO CHAMADA PELO ONCLICK NO HTML
 window.adicionarTarefa = function() {
     const inputTitulo = document.getElementById("titulo");
     const selectColuna = document.getElementById("colunaDestino");
@@ -317,32 +318,20 @@ document.getElementById("limpar").onclick = () => {
     }
 };
 
-// --- INICIALIZAÇÃO ---
-function inicializar() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('mes')) {
-        dataExibida.setMonth(parseInt(urlParams.get('mes')));
-        dataExibida.setFullYear(parseInt(urlParams.get('ano')));
-    }
-    resetarTelaECarregar();
-}
-
 // --- FUNÇÕES DE DRAG & DROP (CHAMADAS PELO HTML) ---
 
 window.allowDrop = function(event) {
-    event.preventDefault(); // Necessário para permitir o drop
-}
+    event.preventDefault();
+};
 
 window.drop = function(event) {
     event.preventDefault();
     const arrastando = document.querySelector(".arrastando");
-    // Encontra a coluna, mesmo que o usuário solte em cima de outro cartão
     const colunaAlvo = event.target.closest(".coluna");
     
     if (arrastando && colunaAlvo) {
         colunaAlvo.appendChild(arrastando);
         
-        // Atualiza o ícone da tarefa baseado na nova coluna
         const colunaId = colunaAlvo.id;
         const icon = arrastando.querySelector(".emoji-label i");
         if (icon) {
@@ -352,10 +341,20 @@ window.drop = function(event) {
             if (colunaId === "done") icon.classList.add("fa-circle-check");
         }
         
-        salvarDados(); // Sincroniza a nova posição com LocalStorage e Firebase
-        ordenarColuna(colunaId); // Reordena por prioridade na nova coluna
+        salvarDados();
+        ordenarColuna(colunaId);
     }
+};
+
+// --- INICIALIZAÇÃO (CHAMADA POR ÚLTIMO) ---
+function inicializar() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('mes')) {
+        dataExibida.setMonth(parseInt(urlParams.get('mes')));
+        dataExibida.setFullYear(parseInt(urlParams.get('ano')));
+    }
+    resetarTelaECarregar();
 }
 
+// Garante que as funções window.drop já existam antes de carregar dados
 inicializar();
-
