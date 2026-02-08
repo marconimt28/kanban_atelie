@@ -123,7 +123,7 @@ function renderizarDados(dados) {
     });
 }
 
-// --- GESTÃO DE TAREFAS (DESIGN ORIGINAL RESTAURADO) ---
+// --- GESTÃO DE TAREFAS (RESTAURO VISUAL) ---
 
 function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     const cartao = document.createElement("div");
@@ -186,67 +186,55 @@ function criarCartao(texto, id, colunaId, prioridade = 'baixa') {
     return cartao;
 }
 
-// CORREÇÃO DO BOTÃO ADICIONAR
-const btnAdd = document.getElementById("adicionar") || document.querySelector(".controles-principais button");
-if (btnAdd) {
-    btnAdd.addEventListener("click", () => {
-        const inputTitulo = document.getElementById("titulo");
-        const titulo = inputTitulo.value.trim();
-        const colunaDestino = document.getElementById("colunaDestino").value;
-        const prioridade = document.getElementById("prioridade").value;
+// FUNÇÃO CHAMADA PELO ONCLICK NO HTML
+window.adicionarTarefa = function() {
+    const inputTitulo = document.getElementById("titulo");
+    const selectColuna = document.getElementById("colunaDestino");
+    const selectPrioridade = document.getElementById("prioridade");
 
-        if (titulo !== "") {
-            const novoCartao = criarCartao(titulo, "c" + Date.now(), colunaDestino, prioridade);
-            document.getElementById(colunaDestino).appendChild(novoCartao);
+    if (!inputTitulo) return;
+
+    const titulo = inputTitulo.value.trim();
+    const colunaDestino = selectColuna.value;
+    const prioridade = selectPrioridade.value;
+
+    if (titulo !== "") {
+        const novoCartao = criarCartao(titulo, "c" + Date.now(), colunaDestino, prioridade);
+        const container = document.getElementById(colunaDestino);
+        if (container) {
+            container.appendChild(novoCartao);
             inputTitulo.value = ""; 
             salvarDados();
             ordenarColuna(colunaDestino);
         }
-    });
-}
+    } else {
+        alert("Por favor, digite o título da tarefa.");
+    }
+};
 
 // --- POMODORO ---
 
 function abrirPomodoro(id, titulo) {
     tarefaAtivaId = id;
-    let container = document.getElementById("pomodoro-container");
-    if (!container) {
-        const pomoHtml = `
-        <div id="pomodoro-container" class="pomodoro-flutuante">
-            <div class="pomodoro-header">
-                <span id="pomo-tarefa-titulo"></span>
-                <button id="fechar-pomo">&times;</button>
-            </div>
-            <div class="pomo-display"><span id="tempo-restante">25:00</span></div>
-            <div class="pomo-controles">
-                <input type="number" id="pomo-minutos" value="25" min="1" max="60">
-                <button id="pomo-start">Iniciar</button>
-            </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', pomoHtml);
-        
-        document.getElementById("fechar-pomo").onclick = () => {
-            document.getElementById("pomodoro-container").style.display = "none";
-            clearInterval(timerInterval);
-        };
-        document.getElementById("pomo-start").onclick = acaoBotaoPomo;
-        container = document.getElementById("pomodoro-container");
-    }
-    
+    const container = document.getElementById("pomodoro-container");
     document.getElementById("pomo-tarefa-titulo").textContent = titulo;
-    container.style.display = "block";
+    if (container) container.style.display = "block";
 }
 
-function acaoBotaoPomo() {
-    const btn = document.getElementById("pomo-start");
-    if (btn.textContent === "Iniciar") {
-        btn.textContent = "Parar";
+document.getElementById("fechar-pomo").onclick = () => {
+    document.getElementById("pomodoro-container").style.display = "none";
+    clearInterval(timerInterval);
+};
+
+document.getElementById("pomo-start").onclick = function() {
+    if (this.textContent.includes("Iniciar")) {
+        this.innerHTML = '<i class="fa-solid fa-pause"></i> Parar';
         iniciarTimer(parseInt(document.getElementById("pomo-minutos").value));
     } else {
-        btn.textContent = "Iniciar";
+        this.innerHTML = '<i class="fa-solid fa-play"></i> Iniciar';
         clearInterval(timerInterval);
     }
-}
+};
 
 function iniciarTimer(minutos) {
     let tempo = minutos * 60;
@@ -258,9 +246,9 @@ function iniciarTimer(minutos) {
         display.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         if (tempo <= 0) {
             clearInterval(timerInterval);
-            alert("Tempo finalizado!");
+            alert("⏰ Tempo finalizado!");
             salvarHistoricoPomo(minutos);
-            document.getElementById("pomo-start").textContent = "Iniciar";
+            document.getElementById("pomo-start").innerHTML = '<i class="fa-solid fa-play"></i> Iniciar';
         }
         tempo--;
     }, 1000);
@@ -275,12 +263,16 @@ async function salvarHistoricoPomo(minutos) {
     if (window.db) {
         try {
             const { doc, setDoc } = window.fsMethods;
-            await setDoc(doc(window.db, "pomodoro", `${chave}_${Date.now()}`), { tempo: minutos, data: new Date().toISOString(), tarefaId: tarefaAtivaId });
+            await setDoc(doc(window.db, "pomodoro", `${chave}_${Date.now()}`), { 
+                tempo: minutos, 
+                data: new Date().toISOString(),
+                tarefaId: tarefaAtivaId 
+            });
         } catch(e) { console.error(e); }
     }
 }
 
-// --- ORDENAÇÃO E DRAG & DROP ---
+// --- ORDENAÇÃO ---
 
 function ordenarColuna(colunaId) {
     const coluna = document.getElementById(colunaId);
@@ -296,29 +288,7 @@ function ordenarColuna(colunaId) {
     cartoes.forEach(c => coluna.appendChild(c));
 }
 
-["todo", "doing", "done"].forEach(colunaId => {
-    const coluna = document.getElementById(colunaId);
-    if (coluna) {
-        coluna.addEventListener("dragover", e => e.preventDefault());
-        coluna.addEventListener("drop", () => {
-            const arrastando = document.querySelector(".arrastando");
-            if (arrastando) {
-                coluna.appendChild(arrastando);
-                const icon = arrastando.querySelector(".emoji-label i");
-                if (icon) {
-                    icon.className = "fa-solid";
-                    if (colunaId === "todo") icon.classList.add("fa-clipboard-list");
-                    if (colunaId === "doing") icon.classList.add("fa-spinner", "fa-spin");
-                    if (colunaId === "done") icon.classList.add("fa-circle-check");
-                }
-                salvarDados();
-                ordenarColuna(colunaId);
-            }
-        });
-    }
-});
-
-// --- TOAST E MODAIS ---
+// --- TOAST E LIMPEZA ---
 
 function mostrarToastDesfazer() {
     const existente = document.getElementById("toast-undo");
@@ -335,21 +305,17 @@ window.desfazerExclusao = function() {
         const { elemento, pai, posicao } = ultimaTarefaExcluida;
         pai.insertBefore(elemento, pai.children[posicao] || null);
         salvarDados();
-        const toast = document.getElementById("toast-undo");
-        if (toast) toast.remove();
+        if (document.getElementById("toast-undo")) document.getElementById("toast-undo").remove();
         ultimaTarefaExcluida = null;
     }
 };
 
-const btnLimpar = document.getElementById("limpar");
-if (btnLimpar) {
-    btnLimpar.onclick = () => {
-        if (confirm("Deseja realmente limpar todas as tarefas deste mês?")) {
-            localStorage.removeItem(getChaveMes());
-            resetarTelaECarregar();
-        }
-    };
-}
+document.getElementById("limpar").onclick = () => {
+    if (confirm("Limpar tarefas deste mês?")) {
+        localStorage.removeItem(getChaveMes());
+        resetarTelaECarregar();
+    }
+};
 
 // --- INICIALIZAÇÃO ---
 function inicializar() {
