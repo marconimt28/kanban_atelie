@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Produtividade</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .voltar { 
+            display: inline-block; 
+            margin: 20px; 
+            text-decoration: none; 
+            color: #2563eb; 
+            font-weight: bold; 
+            padding: 10px 20px;
+            border: 2px solid #2563eb;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .voltar:hover {
+            background: #2563eb;
+            color: white;
+        }
+        .dashboard-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container-grafico { 
+            flex: 1;
+            min-width: 300px; 
+            max-width: 500px;
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 { text-align: center; color: #1e293b; margin-top: 10px; }
+        h3 { color: #64748b; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="voltar" id="btn-voltar">⬅ Voltar para o Kanban</a>    
+    <h1>Análise de Desempenho</h1>
+    
+    <div class="dashboard-grid">
+        <div class="container-grafico">
+            <h3>Status das Tarefas</h3>
+            <canvas id="meuGrafico"></canvas>
+        </div>
+
+        <div class="container-grafico">
+            <h3>Distribuição por Prioridade</h3>
+            <canvas id="graficoPrioridade"></canvas>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
