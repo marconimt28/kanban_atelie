@@ -58,7 +58,30 @@
             <h3>Distribuição por Prioridade</h3>
             <canvas id="graficoPrioridade"></canvas>
         </div>
-    </div>
+        
+        </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Cole aqui as suas credenciais do Firebase (as mesmas do index.html)
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "ID",
+            appId: "APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Disponibiliza para o dashboard.js
+        window.db = db;
+        window.fsMethods = { doc, getDoc };
+    </script>
 
     <script src="dashboard.js"></script>
 </body>
